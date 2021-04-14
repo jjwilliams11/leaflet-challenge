@@ -24,7 +24,7 @@ function colorDepth(depth){
         return "#00FF80";
     }
     else if (depth >=10 && depth < 30){
-        return "#00FF80";
+        return "#008000";
     }
     else if (depth >=30 && depth < 50){
         return "#FFFF00";
@@ -85,33 +85,33 @@ d3.json(Quake7dayUrl).then(function(quakeData) {
 
 
 
-  // Set up the legend
-//   var legend = L.control({ position: "bottomright" });
-//   legend.onAdd = function() {
-//     var div = L.DomUtil.create("div", "info legend");
-//     var limits = geojson.options.limits;
-//     var colors = geojson.options.colors;
-//     var labels = [];
+  let legend = L.control({ position: "bottomright" });
+  legend.onAdd = function() {
+    var div = L.DomUtil.create("div", "info legend");
+    var limits = ['<10','10 - 30','30 -50 ','50 -70','70 - 90', '>90'];
+    var colors = ['#00FF80','#008000','#FFFF00','#FF8000','#FF3333', '#990000'];
+    var labels = [];
 
 //     // Add min & max
-//     var legendInfo = "<h1>Median Income</h1>" +
-//       "<div class=\"labels\">" +
-//         "<div class=\"min\">" + limits[0] + "</div>" +
-//         "<div class=\"max\">" + limits[limits.length - 1] + "</div>" +
-//       "</div>";
+    var legendInfo = "<h1>Earthquake Magnitude</h1>" +
+      "<div class=\"labels\">" +
+        "<div class=\"min\">" + limits[0] + "</div>" +
+        "<div class=\"max\">" + limits[limits.length - 1] + "</div>" +
+      "</div>";
 
-//     div.innerHTML = legendInfo;
+    div.innerHTML = legendInfo;
 
-//     limits.forEach(function(limit, index) {
-//       labels.push("<li style=\"background-color: " + colors[index] + "\"></li>");
-//     });
+    limits.forEach(function(limit, index) {
+      labels.push("<li style=\"background-color: " + colors[index] + "\"></li>");
+    });
 
-//     div.innerHTML += "<ul>" + labels.join("") + "</ul>";
-//     return div;
-//   };
+    div.innerHTML += "<ul>" + labels.join("") + "</ul>";
+    return div;
+  };
 
-//   // Adding legend to the map
-//   legend.addTo(myMap);
+  // Adding legend to the map
+  legend.addTo(quakeMap);
+
 
 
 
