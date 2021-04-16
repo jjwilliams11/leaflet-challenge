@@ -43,7 +43,7 @@ function colorDepth(depth){
 
 // function to set radius based on magnitude of quake
 function magnitudeSize(magnitude) {
-    return magnitude * 75000;
+    return magnitude * 25000;
   }
 
 function dateTime(time){
@@ -93,7 +93,7 @@ d3.json(Quake7dayUrl).then(function(quakeData) {
     var labels = [];
 
 //     // Add min & max
-    var legendInfo = "<h1>Earthquake Magnitude</h1>" +
+    var legendInfo = "<h1>Earthquake Depth (KM) </h1>" +
       "<div class=\"labels\">" +
         "<div class=\"min\">" + limits[0] + "</div>" +
         "<div class=\"max\">" + limits[limits.length - 1] + "</div>" +
