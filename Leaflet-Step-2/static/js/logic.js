@@ -50,13 +50,76 @@ d3.json(Quake7dayUrl).then(function(data) {
     // Once we get a response, send the data.features object to the createFeatures function
     createQuakes(data.features);
 });
+d3.json(Quake7dayUrl).then(function(quakeData) {
+    quakeData = quakeData.features
+    quakeData.forEach(quake => {
+
+        let lat = quake.geometry.coordinates[1];
+        let lon = quake.geometry.coordinates[0];
+        let depth = quake.geometry.coordinates[2];
+        let magnitude = quake.properties.mag;
+        let time = quake.properties.time;
+    
+        L.circle([lat,lon], {
+            color: colorDepth(depth),
+            fillColor: colorDepth(depth),
+            fillOpacity: 0.7,
+            radius: magnitudeSize(magnitude)       
+        }).bindPopup(`<h2>Location: ${quake.properties.place}</h2> <hr> <h3>${dateTime(time)}</h3> 
+        <hr> <h3> Magnitude of ${magnitude} and Depth of ${depth}`)//.addTo(quakeMap)
+    });
+
+});
+
+
+
+
+
+
 
 let plateBoundaries = "static/GeoJSON/PB2002_boundaries.json"
+
+d3.json(plateBoundaries).then(function(data) {
+    console.log(data.features)
+    // Once we get a response, send the data.features object to the createFeatures function
+    createPlates(data.features);
+});
+
+function createPlates(plateData) {
+
+    // Define a function we want to run once for each feature in the features array
+    // Give each feature a popup describing the place and time of the earthquake
+    // function onEachFeature(feature, layer) {
+    //   layer.bindPopup("<h3>" + feature.properties.place +
+    //     "</h3><hr><p>" + new Date(feature.properties.time) + "</p>");
+    // }
+  
+    // Create a GeoJSON layer containing the features array on the earthquakeData object
+    // Run the onEachFeature function once for each piece of data in the array
+    let plateLayer = L.geoJSON(plateData, {
+    //   onEachFeature: onEachFeature
+    });
+  
+    // Sending our earthquakes layer to the createMap function
+    createMap(plateLayer);
+  }
+
 
 
 function createQuakes (quakeData) {
     function onEachFeatures(feature, layer){
-        layer.bindPopup(`<h2>Location: ${feature.properties.place}</h2> <hr> <h3>${dateTime(feature.properties.time)}</h3> 
+        let lat = feature.geometry.coordinates[1];
+        let lon = feature.geometry.coordinates[0];
+        let depth = feature.geometry.coordinates[2];
+        let magnitude = feature.properties.mag;
+        let time = feature.properties.time;
+
+        layer = L.circle([lat,lon], {
+            color: colorDepth(depth),
+            fillColor: colorDepth(depth),
+            fillOpacity: 0.7,
+            radius: magnitudeSize(magnitude)       
+        }).bindPopup(`<h2>Location: ${feature.properties.place}</h2> <hr> <h3>${dateTime(time)}</h3> 
         <hr> <h3> Magnitude of ${magnitude} and Depth of ${depth}`);
     }
 
@@ -64,11 +127,13 @@ function createQuakes (quakeData) {
         onEachFeatures: onEachFeatures
     });
 
+
+
     createMap(earthquakes)
 }
 
 
-function createMap(earthquakes) {
+function createMap(plateLayer) {
 
     // Adding tile layers to the map
     let streetMap = L.tileLayer("https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}", {
@@ -104,15 +169,15 @@ function createMap(earthquakes) {
 
     // setup overlayMaps
     let overlayMaps = {
-        // Techtonic: plateLayer,
-        EarthQuakes: earthquakes
+        Techtonic: plateLayer,
+        // EarthQuakes: earthquakes
     };
 
     // Creating map object
     let quakeMap = L.map("map", {
         center: [29.9546500, -90.0750700],
         zoom: 3,
-        layers: [streetMap, earthquakes]
+        layers: [streetMap, plateLayer]
     });
 
     L.control.layers(baseMaps, overlayMaps, {
@@ -155,21 +220,22 @@ function createMap(earthquakes) {
 
 // let plateMarkers = [];
 
-// d3.json(plateBoundaries).then(function(boundaries) {
+d3.json(plateBoundaries).then(function(boundaries) {
     
-//     let plateLayer = L.geoJson(boundaries, {
-//     })
-//     // boundaries = boundaries.features
+    let plateLayer = L.geoJson(boundaries, {
+    })
+})
+    // boundaries = boundaries.features
 
-//     // boundaries.forEach(data => {
-//     //     data = data.geometry.coordinates;
-//     //     // console.log(data);
-//     //     data.forEach(marker => {
-//     //         plateMarkers.push(marker)
-//     //         // console.log(marker)
-//     //     })
+    // boundaries.forEach(data => {
+    //     data = data.geometry.coordinates;
+    //     // console.log(data);
+    //     data.forEach(marker => {
+    //         plateMarkers.push(marker)
+    //         // console.log(marker)
+    //     })
         
-//     // })
+    // })
 
 // })
 // console.log(plateMarkers)
@@ -187,23 +253,21 @@ function createMap(earthquakes) {
 
 
 // Plot our data
-// d3.json(Quake7dayUrl).then(function(quakeData) {
-//     quakeData = quakeData.features
-//     quakeData.forEach(quake => {
 
-//         let lat = quake.geometry.coordinates[1];
-//         let lon = quake.geometry.coordinates[0];
-//         let depth = quake.geometry.coordinates[2];
-//         let magnitude = quake.properties.mag;
-//         let time = quake.properties.time;
+
+    // quakeData.forEach(quake => {
+
+    //     let lat = quake.geometry.coordinates[1];
+    //     let lon = quake.geometry.coordinates[0];
+    //     let depth = quake.geometry.coordinates[2];
+    //     let magnitude = quake.properties.mag;
+    //     let time = quake.properties.time;
     
-//         L.circle([lat,lon], {
-//             color: colorDepth(depth),
-//             fillColor: colorDepth(depth),
-//             fillOpacity: 0.7,
-//             radius: magnitudeSize(magnitude)       
-//         }).bindPopup(`<h2>Location: ${quake.properties.place}</h2> <hr> <h3>${dateTime(time)}</h3> 
-//         <hr> <h3> Magnitude of ${magnitude} and Depth of ${depth}`)//.addTo(quakeMap)
-//     });
-
-// });
+    //     earthquakes.push(L.circle([lat,lon], {
+    //         color: colorDepth(depth),
+    //         fillColor: colorDepth(depth),
+    //         fillOpacity: 0.7,
+    //         radius: magnitudeSize(magnitude)       
+    //     }).bindPopup(`<h2>Location: ${quake.properties.place}</h2> <hr> <h3>${dateTime(time)}</h3> 
+    //     <hr> <h3> Magnitude of ${magnitude} and Depth of ${depth}`))//.addTo(quakeMap)
+    // });
