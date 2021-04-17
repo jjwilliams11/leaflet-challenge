@@ -45,11 +45,55 @@ function dateTime(time){
 // Get our data
 let Quake7dayUrl = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson"
 
-d3.json(Quake7dayUrl).then(function(data) {
-    console.log(data.features)
-    // Once we get a response, send the data.features object to the createFeatures function
-    createQuakes(data.features);
-});
+let plateBoundaries = "static/GeoJSON/PB2002_boundaries.json"
+
+
+// Adding tile layers to the map
+let streetMap = L.tileLayer("https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}", {
+    attribution: "© <a href='https://www.mapbox.com/about/maps/'>Mapbox</a> © <a href='http://www.openstreetmap.org/copyright'>OpenStreetMap</a> <strong><a href='https://www.mapbox.com/map-feedback/' target='_blank'>Improve this map</a></strong>",
+    tileSize: 512,
+    maxZoom: 18,
+    zoomOffset: -1,
+    id: "mapbox/streets-v11",
+    accessToken: API_KEY
+    })
+
+let satelliteeMap = L.tileLayer("https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}", {
+    attribution: "© <a href='https://www.mapbox.com/about/maps/'>Mapbox</a> © <a href='http://www.openstreetmap.org/copyright'>OpenStreetMap</a> <strong><a href='https://www.mapbox.com/map-feedback/' target='_blank'>Improve this map</a></strong>",
+    tileSize: 512,
+    maxZoom: 18,
+    zoomOffset: -1,
+    id: "mapbox/satellite-v9",
+    accessToken: API_KEY
+    })
+
+
+let lightMap = L.tileLayer("https://api.mapbox.com/styles/v1/mapbox/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}", {
+    attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>",
+    maxZoom: 18,
+    id: "light-v10",
+    accessToken: API_KEY
+    })
+
+let darkMap = L.tileLayer("https://api.mapbox.com/styles/v1/mapbox/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}", {
+    attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>",
+    maxZoom: 18,
+    id: "dark-v10",
+    accessToken: API_KEY
+    })
+
+
+// setup baseMaps
+let baseMaps = {
+    Satellite: satelliteeMap,
+    Street: streetMap,
+    Light: lightMap,
+    Dark: darkMap
+};
+
+// Establish Earthquake Layer
+let earthquakes = new L.LayerGroup();
+
 d3.json(Quake7dayUrl).then(function(quakeData) {
     quakeData = quakeData.features
     quakeData.forEach(quake => {
@@ -63,211 +107,69 @@ d3.json(Quake7dayUrl).then(function(quakeData) {
         L.circle([lat,lon], {
             color: colorDepth(depth),
             fillColor: colorDepth(depth),
-            fillOpacity: 0.7,
+            fillOpacity: 0.5,
             radius: magnitudeSize(magnitude)       
         }).bindPopup(`<h2>Location: ${quake.properties.place}</h2> <hr> <h3>${dateTime(time)}</h3> 
-        <hr> <h3> Magnitude of ${magnitude} and Depth of ${depth}`)//.addTo(quakeMap)
+        <hr> <h3> Magnitude of ${magnitude} and Depth of ${depth}`).addTo(earthquakes)
     });
 
 });
 
-
-
-
-
-
-
-let plateBoundaries = "static/GeoJSON/PB2002_boundaries.json"
-
-d3.json(plateBoundaries).then(function(data) {
-    console.log(data.features)
-    // Once we get a response, send the data.features object to the createFeatures function
-    createPlates(data.features);
+let plateLayer = new L.LayerGroup();
+// Establish Techtonic plate layer
+d3.json(plateBoundaries).then(function(plates) {
+    L.geoJson(plates, {
+        color: "orange",
+        weight: 2
+    }).addTo(plateLayer)
 });
 
-function createPlates(plateData) {
-
-    // Define a function we want to run once for each feature in the features array
-    // Give each feature a popup describing the place and time of the earthquake
-    // function onEachFeature(feature, layer) {
-    //   layer.bindPopup("<h3>" + feature.properties.place +
-    //     "</h3><hr><p>" + new Date(feature.properties.time) + "</p>");
-    // }
-  
-    // Create a GeoJSON layer containing the features array on the earthquakeData object
-    // Run the onEachFeature function once for each piece of data in the array
-    let plateLayer = L.geoJSON(plateData, {
-    //   onEachFeature: onEachFeature
-    });
-  
-    // Sending our earthquakes layer to the createMap function
-    createMap(plateLayer);
-  }
 
 
+// setup overlayMaps
+let overlayMaps = {
+    "Techtonic Plates": plateLayer,
+    EarthQuakes: earthquakes
+};
 
-function createQuakes (quakeData) {
-    function onEachFeatures(feature, layer){
-        let lat = feature.geometry.coordinates[1];
-        let lon = feature.geometry.coordinates[0];
-        let depth = feature.geometry.coordinates[2];
-        let magnitude = feature.properties.mag;
-        let time = feature.properties.time;
+// Creating map object
+let quakeMap = L.map("map", {
+    center: [29.9546500, -90.0750700],
+    zoom: 3,
+    layers: [satelliteeMap, earthquakes, plateLayer]
+});
 
-        layer = L.circle([lat,lon], {
-            color: colorDepth(depth),
-            fillColor: colorDepth(depth),
-            fillOpacity: 0.7,
-            radius: magnitudeSize(magnitude)       
-        }).bindPopup(`<h2>Location: ${feature.properties.place}</h2> <hr> <h3>${dateTime(time)}</h3> 
-        <hr> <h3> Magnitude of ${magnitude} and Depth of ${depth}`);
-    }
+L.control.layers(baseMaps, overlayMaps, {
+    collapsed: false
+    }).addTo(quakeMap);
 
-    let earthquakes = L.geoJson(quakeData, {
-        onEachFeatures: onEachFeatures
+
+let legend = L.control({ position: "bottomright" });
+legend.onAdd = function() {
+    var div = L.DomUtil.create("div", "info legend");
+    var limits = ['<10','10 - 30','30 -50 ','50 -70','70 - 90', '>90'];
+    var colors = ['#00FF80','#008000','#FFFF00','#FF8000','#FF3333', '#990000'];
+    var labels = [];
+
+    // Add min & max
+    var legendInfo = "<h1>Earthquake Depth (KM) </h1>" +
+    "<div class=\"labels\">" +
+        "<div class=\"min\">" + limits[0] + "</div>" +
+        "<div class=\"max\">" + limits[limits.length - 1] + "</div>" +
+    "</div>";
+
+    div.innerHTML = legendInfo;
+
+    limits.forEach(function(limit, index) {
+    labels.push("<li style=\"background-color: " + colors[index] + "\"></li>");
     });
 
+    div.innerHTML += "<ul>" + labels.join("") + "</ul>";
+    return div;
+};
 
-
-    createMap(earthquakes)
-}
-
-
-function createMap(plateLayer) {
-
-    // Adding tile layers to the map
-    let streetMap = L.tileLayer("https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}", {
-        attribution: "© <a href='https://www.mapbox.com/about/maps/'>Mapbox</a> © <a href='http://www.openstreetmap.org/copyright'>OpenStreetMap</a> <strong><a href='https://www.mapbox.com/map-feedback/' target='_blank'>Improve this map</a></strong>",
-        tileSize: 512,
-        maxZoom: 18,
-        zoomOffset: -1,
-        id: "mapbox/streets-v11",
-        accessToken: API_KEY
-        })
-
-    let lightMap = L.tileLayer("https://api.mapbox.com/styles/v1/mapbox/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}", {
-        attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>",
-        maxZoom: 18,
-        id: "light-v10",
-        accessToken: API_KEY
-        })
-
-    let darkMap = L.tileLayer("https://api.mapbox.com/styles/v1/mapbox/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}", {
-        attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>",
-        maxZoom: 18,
-        id: "dark-v10",
-        accessToken: API_KEY
-        })
-
-
-    // setup baseMaps
-    let baseMaps = {
-        Street: streetMap,
-        Light: lightMap,
-        Dark: darkMap
-    };
-
-    // setup overlayMaps
-    let overlayMaps = {
-        Techtonic: plateLayer,
-        // EarthQuakes: earthquakes
-    };
-
-    // Creating map object
-    let quakeMap = L.map("map", {
-        center: [29.9546500, -90.0750700],
-        zoom: 3,
-        layers: [streetMap, plateLayer]
-    });
-
-    L.control.layers(baseMaps, overlayMaps, {
-        collapsed: false
-      }).addTo(quakeMap);
-
-
-    let legend = L.control({ position: "bottomright" });
-    legend.onAdd = function() {
-        var div = L.DomUtil.create("div", "info legend");
-        var limits = ['<10','10 - 30','30 -50 ','50 -70','70 - 90', '>90'];
-        var colors = ['#00FF80','#008000','#FFFF00','#FF8000','#FF3333', '#990000'];
-        var labels = [];
-
-        // Add min & max
-        var legendInfo = "<h1>Earthquake Depth (KM) </h1>" +
-        "<div class=\"labels\">" +
-            "<div class=\"min\">" + limits[0] + "</div>" +
-            "<div class=\"max\">" + limits[limits.length - 1] + "</div>" +
-        "</div>";
-
-        div.innerHTML = legendInfo;
-
-        limits.forEach(function(limit, index) {
-        labels.push("<li style=\"background-color: " + colors[index] + "\"></li>");
-        });
-
-        div.innerHTML += "<ul>" + labels.join("") + "</ul>";
-        return div;
-    };
-
-    // Adding legend to the map
-    legend.addTo(quakeMap);
-}
+// Adding legend to the map
+legend.addTo(quakeMap);
 
 
 
-// // Adding quake and techtonic plate layers
-// let quakeMarkers = [];
-
-// let plateMarkers = [];
-
-d3.json(plateBoundaries).then(function(boundaries) {
-    
-    let plateLayer = L.geoJson(boundaries, {
-    })
-})
-    // boundaries = boundaries.features
-
-    // boundaries.forEach(data => {
-    //     data = data.geometry.coordinates;
-    //     // console.log(data);
-    //     data.forEach(marker => {
-    //         plateMarkers.push(marker)
-    //         // console.log(marker)
-    //     })
-        
-    // })
-
-// })
-// console.log(plateMarkers)
-// let plateLine = L.polyline(plateMarkers, {
-//     color: "yellow"
-// });
-
-// let plateLayer = L.layerGroup(plateLine);
-
-
-
-
-
-
-
-
-// Plot our data
-
-
-    // quakeData.forEach(quake => {
-
-    //     let lat = quake.geometry.coordinates[1];
-    //     let lon = quake.geometry.coordinates[0];
-    //     let depth = quake.geometry.coordinates[2];
-    //     let magnitude = quake.properties.mag;
-    //     let time = quake.properties.time;
-    
-    //     earthquakes.push(L.circle([lat,lon], {
-    //         color: colorDepth(depth),
-    //         fillColor: colorDepth(depth),
-    //         fillOpacity: 0.7,
-    //         radius: magnitudeSize(magnitude)       
-    //     }).bindPopup(`<h2>Location: ${quake.properties.place}</h2> <hr> <h3>${dateTime(time)}</h3> 
-    //     <hr> <h3> Magnitude of ${magnitude} and Depth of ${depth}`))//.addTo(quakeMap)
-    // });
